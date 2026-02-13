@@ -1,6 +1,7 @@
 from loader import load_python_files
 from embeder import embed_texts, embed_query
 from vectorstore import VectorStore
+from chunker import chunk_text
 
 
 def main():
@@ -15,22 +16,39 @@ def main():
 
     print(f"Loaded {len(docs)} files.\n")
 
-    texts = [doc["content"] for doc in docs]
+    print("Chunking documents...\n")
+
+    all_chunks = []
+    chunk_metadata = []
+
+    for doc in docs:
+        chunks = chunk_text(doc["content"])
+
+        for chunk in chunks:
+            all_chunks.append(chunk)
+            chunk_metadata.append({
+                "path": doc["path"],
+                "content": chunk
+            })
+
+    print(f"Generated {len(all_chunks)} chunks.\n")
 
     print("Generating embeddings...\n")
-    embeddings = embed_texts(texts)
+    embeddings = embed_texts(all_chunks)
 
     print("Creating vector index...\n")
     store = VectorStore(len(embeddings[0]))
-    store.add(embeddings, docs)
+    store.add(embeddings, chunk_metadata)
 
-    print("RAG System Ready.\n")
+    print("RAG System v1.1 Ready.\n")
 
     while True:
         query = input("Ask about the codebase (or type 'exit'): ")
 
         if query.lower() == "exit":
             break
+
+        print("\nSearching...\n")
 
         query_embedding = embed_query(query)
         results = store.search(query_embedding)
@@ -39,7 +57,9 @@ def main():
 
         for r in results:
             print("File:", r["path"])
-            print("-" * 60)
+            print("Snippet:\n")
+            print(r["content"][:400])
+            print("-" * 80)
 
 
 if __name__ == "__main__":
