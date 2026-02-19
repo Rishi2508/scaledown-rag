@@ -1,44 +1,46 @@
 # generator.py
+
 from google import genai
 import os
 
-# Read API key from environment
+# Read API key
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
-    raise ValueError("GEMINI_API_KEY not set in environment!")
+    raise ValueError("GEMINI_API_KEY not set!")
 
-# Create a GenAI client
 client = genai.Client(api_key=api_key)
 
+
 def generate_answer(query, retrieved_chunks):
-    """
-    Generate a response using the Gemini API given a query and relevant code chunks.
-    """
-    # Combine retrieved chunks into context
+
+    if not retrieved_chunks:
+        return "No relevant code found for this question."
+
     context = "\n\n".join(
         [f"File: {chunk['path']}\n{chunk['content']}" for chunk in retrieved_chunks]
     )
 
-    # Create the prompt
     prompt = f"""
-You are a senior software engineer analyzing a codebase.
+You are a senior Python codebase analyst.
 
-Use ONLY the provided context to answer.
+Answer using ONLY the provided context.
+
+Be detailed and technical.
 
 Context:
 {context}
 
 Question:
 {query}
-
-Answer clearly and technically.
 """
 
-    # Generate text from Gemini
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
 
-    # Get the generated text
-    return response.candidates[0].content
+        return response.text
+
+    except Exception as e:
+        return f"Error generating response: {str(e)}"

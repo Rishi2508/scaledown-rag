@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Code RAG Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        input, button {
+            padding: 8px;
+            margin-top: 5px;
+        }
+
+        input[type="text"] {
+            width: 75%;
+        }
+
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .chat-box {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+        }
+
+        .user {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .assistant {
+            background: #1e1e1e;
+            color: #00ff88;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 5px;
+            white-space: pre-wrap;
+        }
+
+        .sources {
+            font-size: 12px;
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .status {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <h2>📦 Upload Python Project</h2>
+
+    <input type="file" id="zipFile">
+    <button onclick="uploadProject()">Upload</button>
+    <div id="uploadStatus" class="status"></div>
+
+    <hr>
+
+    <h2>💬 Code Assistant</h2>
+
+    <input type="text" id="question" placeholder="Ask about your code...">
+    <button onclick="askQuestion()">Send</button>
+
+    <div class="chat-box" id="chatBox"></div>
+
+</div>
+
+<script>
+    async function uploadProject() {
+        const fileInput = document.getElementById("zipFile");
+        const status = document.getElementById("uploadStatus");
+
+        const file = fileInput.files[0];
+        if (!file) {
+            alert("Select a ZIP file.");
+            return;
+        }
+
+        status.innerText = "Building index...";
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            status.innerText = "✅ " + data.message;
+            document.getElementById("chatBox").innerHTML = "";
+        } else {
+            status.innerText = "❌ " + data.error;
+        }
+    }
+
+    async function askQuestion() {
+        const questionInput = document.getElementById("question");
+        const chatBox = document.getElementById("chatBox");
+
+        const question = questionInput.value;
+        if (!question) return;
+
+        // Show user message
+        const userMsg = document.createElement("div");
+        userMsg.className = "message";
+        userMsg.innerHTML = `<div class="user">You:</div> ${question}`;
+        chatBox.appendChild(userMsg);
+
+        questionInput.value = "";
+
+        // Show thinking
+        const thinking = document.createElement("div");
+        thinking.className = "assistant";
+        thinking.innerText = "Thinking...";
+        chatBox.appendChild(thinking);
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        const response = await fetch("/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: question })
+        });
+
+        const data = await response.json();
+
+        chatBox.removeChild(thinking);
+
+        const assistantMsg = document.createElement("div");
+        assistantMsg.className = "assistant";
+        assistantMsg.innerText = data.answer || data.error;
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "message";
+        wrapper.appendChild(assistantMsg);
+
+        // Show sources
+        if (data.sources && data.sources.length > 0) {
+            const sourcesDiv = document.createElement("div");
+            sourcesDiv.className = "sources";
+            sourcesDiv.innerText = "Sources: " + data.sources.join(", ");
+            wrapper.appendChild(sourcesDiv);
+        }
+
+        chatBox.appendChild(wrapper);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+</script>
+
+</body>
+</html>

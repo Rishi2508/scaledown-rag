@@ -1,6 +1,4 @@
 import os
-
-
 def load_python_files(folder_path):
     documents = []
 

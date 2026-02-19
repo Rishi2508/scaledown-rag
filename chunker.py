@@ -1,12 +1,20 @@
-def chunk_text(text, chunk_size=500, overlap=50):
+def chunk_code(documents, chunk_size=800, overlap=100):
     chunks = []
-    start = 0
-    length = len(text)
 
-    while start < length:
-        end = start + chunk_size
-        chunk = text[start:end]
-        chunks.append(chunk)
-        start = end - overlap
+    for doc in documents:
+        content = doc["content"]
+        path = doc["path"]
+
+        start = 0
+        while start < len(content):
+            end = start + chunk_size
+            chunk_text = content[start:end]
+
+            chunks.append({
+                "path": path,
+                "content": chunk_text
+            })
+
+            start += chunk_size - overlap
 
     return chunks
