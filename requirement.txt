@@ -1,8 +1,0 @@
-Flask
-flask-cors
-faiss-cpu
-sentence-transformers
-tree-sitter
-tree-sitter-languages
-google-genai
-
